@@ -1,0 +1,18 @@
+{
+    "deps": [
+        "build-essential",
+        "ninja-build",
+        "python3-dev",
+        "nginx",
+        "bridge-utils",
+        "git"
+    ],
+    "devDeps": [
+        "build-essential",
+        "ninja-build",
+        "python3-dev",
+        "nginx",
+        "bridge-utils",
+        "git"
+    ]
+}

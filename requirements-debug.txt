@@ -1,0 +1,8 @@
+debugpy
+pyserial
+shared-memory-dict
+pyModbusTCP
+wheel
+gunicorn
+flask
+numpy

@@ -1,0 +1,16 @@
+version: "3.9"
+services:
+  tsensor-debug:
+    build:
+      context: .
+      dockerfile: Dockerfile.debug
+    image: ${LOCAL_REGISTRY}:5002/tsensor-debug:${TAG}
+    ports:
+      - 6502:6502
+      - 6512:6512
+    
+  tsensor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${DOCKER_LOGIN}/tsensor:${TAG}
