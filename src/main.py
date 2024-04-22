@@ -12,7 +12,7 @@ baudrate1 = 19200    # Use 19200
 timeout1 = 0.04
 
 # Serial port settings for communicating with Modbus
-host2 = "192.168.15.130"
+host2 = "10.0.0.124"
 port2 = 502
 unit_id2 = 1
 auto_open2 = True
@@ -220,7 +220,7 @@ try:
 
         if current_hour == 0 :
             current_hour = time.localtime().tm_hour 
-            with open(csv_file_path_temp, mode='w', newline='') as csv_file_temp:
+        with open(csv_file_path_temp, mode='w', newline='') as csv_file_temp:
                 csv_writer_temp = csv.writer(csv_file_temp)
                 csv_writer_temp.writerow(csv_header_temp)  # Write the header to the CSV file
         
