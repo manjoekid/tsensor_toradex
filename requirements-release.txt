@@ -5,3 +5,4 @@ wheel
 gunicorn
 flask
 numpy
+python-dotenv

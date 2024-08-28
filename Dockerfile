@@ -32,6 +32,7 @@ RUN apt-get -q -y update && \
 	build-essential:armhf \
 	ninja-build:armhf \
 	python3-dev:armhf \
+	python3-pip:armhf \
 	nginx:armhf \
 	bridge-utils:armhf \
 	git:armhf \
