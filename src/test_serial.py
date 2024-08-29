@@ -151,8 +151,6 @@ temp_min_array = np.zeros(32, dtype='float32')
 
 tsensor_pipe = SharedMemoryDict(name='temperatures', size=4096)
 
-
-
 tsensor_pipe["estado"] = alarm_on
 tsensor_pipe["estado_ga"] = False
 tsensor_pipe["limite_superior"] = upper_limit

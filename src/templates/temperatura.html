@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gráfico de Temperaturas</title>
+    <!-- Adicione o link para a folha de estilo do Bootstrap -->
+    <link href="{{url_for('static', filename='bootstrap.min.css')}}" rel="stylesheet">
+    <script src="{{url_for('static', filename='chart.js')}}"></script>
+    <script src="{{url_for('static', filename='temperatures.js')}}"></script>
+</head>
+<body>
+    
+<div class="container col-lg-12" style="height: 500px;">
+    <div class="row" style="height: 100%;">
+        <div class="col-lg-12 pt-3">
+            <canvas id="temperatureChart"></canvas>
+            
+        </div>
+    </div>
+</div>
+<div class="container col-lg-12">
+    <div class="row mt-3">
+        <div class="col-md-2">
+            <h2>Opções:</h2>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" value="" id="check_max" >
+                <label class="form-check-label" for="check_max">
+                    Máxima
+                </label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" value="" id="check_real" checked>
+                <label class="form-check-label" for="check_real">
+                    Tempo real
+                </label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" value="" id="check_min" >
+                <label class="form-check-label" for="check_min">
+                    Mínima
+                </label>
+            </div>
+        </div>
+        <div class="col-md-5 ">
+            <div class="mt-3">
+                <label for="modoSelecao" class="form-label">Modo:</label>
+                <select class="form-select" id="modoSelecao">
+                    <option value="ligado">Ligado Manual</option>
+                    <option value="desligado">Desligado Manual</option>
+                    <option value="auto">Alarme Operacional</option>
+                    <option value="partida" disabled>Partida</option>
+                </select>
+            </div>
+        </div>
+        <div class="col-md-5">
+            <div class="mt-5">
+                <label for="modoSelecao" class="form-label">Estado Alarme:</label>
+                <button class="btn btn-danger rounded-pill px-3" type="button" id="botao_estado_alarme">Danger</button>
+                <label for="modoSelecao" class="form-label">Estado GA:</label>
+                <button class="btn btn-danger rounded-pill px-3" type="button" id="botao_estado_ga">Danger</button>
+                {% if user == 'admin@tsensor.com' %}
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target=".bd-modal-lg" id="botao_modal">Configurar</button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-lg-12 pt-3">
+            <canvas id="timeChart"></canvas>
+            
+        </div>
+    </div>
+    <div class="mt-3">
+        <label for="timeSelecao" class="form-label">Tempo:</label>
+        <select class="form-select" id="timeSelecao">
+            <option value=30 selected>30s</option>
+            <option value=60>1min</option>
+            <option value=180>3min</option>
+        </select>
+    </div>
+    <div class="mt-3">
+        <label class="form-label" >Download arquivos de LOG:</label>
+        <label for="start-time" class="form-label">Início:</label>
+        <input type="datetime-local" id="start-time">
+    
+        <label for="stop-time" class="form-label">Fim:</label>
+        <input type="datetime-local" id="stop-time">
+    
+        <button class="btn btn-success rounded-pill px-3" id="search-btn">Download Logs</button>
+        {% if user == 'admin@tsensor.com' %}
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="realCheckbox" checked>
+            <label class="form-check-label" for="realCheckbox">
+                Log real?
+            </label>
+        </div>
+        {% else %}
+        <div class="form-check" style="display: none;">
+            <input class="form-check-input" type="checkbox" id="realCheckbox">
+            <label class="form-check-label" for="realCheckbox">
+                Log real?
+            </label>
+        </div>
+        {% endif %}
+        
+    </div>
+
+</div>
+<br><br>
+<br><br>
+<br><br>
+<label>Versão 5.1</label>
+  <!-- Modal -->
+
+  <div class="modal fade bd-modal-lg" id="config_modal" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" style="display: none;" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="exampleModalLongTitle">Configuração Parâmetros</h5>
+          <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+            <form id="config_form">
+                <label for="pre_alarme">Timeout Modo Partida:</label>
+                <input type="number" id="pre_alarme" name="pre_alarme" required>
+                <br><br>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="repeatLostCheckbox" checked>
+                    <label class="form-check-label" id="repeatLostLabel"for="repeatLostCheckbox">
+                        Filtro repete anterior?
+                    </label>
+                </div>
+                <br>
+                <label for="time">Tempo Geral:</label>
+                <input type="number" id="time" name="time" required>
+                <br><br>
+
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio1" value="option1" checked>
+                    <label class="form-check-label" for="inlineRadio1">Controle Geral</label>
+                  </div>
+                  <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio2" value="option2">
+                    <label class="form-check-label" for="inlineRadio2">Controle Individual</label>
+                  </div>
+                <select id="sensor_select" name="Sensor select" disabled >
+                    <option value="32" selected>Todos</option>
+                    <option value="0">Sensor 01</option>
+                    <option value="1">Sensor 02</option>
+                    <option value="2">Sensor 03</option>
+                    <option value="3">Sensor 04</option>
+                    <option value="4">Sensor 05</option>
+                    <option value="5">Sensor 06</option>
+                    <option value="6">Sensor 07</option>
+                    <option value="7">Sensor 08</option>
+                    <option value="8">Sensor 09</option>
+                    <option value="9">Sensor 10</option>
+                    <option value="10">Sensor 11</option>
+                    <option value="11">Sensor 12</option>
+                    <option value="12">Sensor 13</option>
+                    <option value="13">Sensor 14</option>
+                    <option value="14">Sensor 15</option>
+                    <option value="15">Sensor 16</option>
+                    <option value="16">Sensor 17</option>
+                    <option value="17">Sensor 18</option>
+                    <option value="18">Sensor 19</option>
+                    <option value="19">Sensor 20</option>
+                    <option value="20">Sensor 21</option>
+                    <option value="21">Sensor 22</option>
+                    <option value="22">Sensor 23</option>
+                    <option value="23">Sensor 24</option>
+                    <option value="24">Sensor 25</option>
+                    <option value="25">Sensor 26</option>
+                    <option value="26">Sensor 27</option>
+                    <option value="27">Sensor 28</option>
+                    <option value="28">Sensor 29</option>
+                    <option value="29">Sensor 30</option>                
+                    <option value="30">Sensor 31</option>
+                    <option value="31">Sensor 32</option>
+                </select>
+                <br><br>  
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="partidaRadioOptions" id="radioPartida1" value="option1" checked>
+                    <label class="form-check-label" for="inlineRadio1">Limites Operacionais</label>
+                  </div>
+                  <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="partidaRadioOptions" id="radioPartida2" value="option2">
+                    <label class="form-check-label" for="inlineRadio2">Limites durante Partida do Motor</label>
+                  </div>
+                  <br><br>
+                <label for="upper_temp">Temperatura Superior:</label>
+                <input type="number" id="upper_temp" name="upper_temp" required>
+                <br><br>
+                <label for="lower_temp">Temperatura Inferior:</label>
+                <input type="number" id="lower_temp" name="lower_temp" required>
+                <br>
+                <br>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="sensorCheckbox" checked>
+                    <label class="form-check-label" id="sensorEnabledLabel"for="sensorCheckbox">
+                        Sensor habilitado?
+                    </label>
+                </div>
+                <br>
+                <label id="cal_temp_label">Temperatura atual:</label>
+                <label id="modal_temp">0.0</label> 
+                <br>
+                <label id="cal_label" for="calibracao">Calibração:</label>
+                <input type="number" id="calibracao" name="calibracao" >
+            </form>
+            <label id="form_info"></label>
+            <br>
+            <button id="factory-reset-btn" class="btn btn-primary">Reset configurações</button>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+          <button type="button" class="btn btn-primary" id="button_config">Salvar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+<!-- Adicione o link para os scripts do Bootstrap no final do corpo do documento -->
+<script src="{{url_for('static', filename='bootstrap.bundle.min.js')}}"></script>
+</body>
+</html>

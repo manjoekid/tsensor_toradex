@@ -8,6 +8,7 @@ services:
     ports:
       - 6502:6502
       - 6512:6512
+      - 5000:5000
     devices:
       - "/dev/colibri-uarta:/dev/ttyS1"
     
@@ -16,5 +17,17 @@ services:
       context: .
       dockerfile: Dockerfile
     image: ${DOCKER_LOGIN}/tsensor:${TAG}
+    ports:
+      - 5000:5000    
     devices:
       - "/dev/colibri-uarta:/dev/ttyS1"
+
+  nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
+    container_name: nginx
+    ports:
+      - "80:80"
+    depends_on:
+      - tsensor

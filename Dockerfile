@@ -54,10 +54,12 @@ RUN . ${APP_ROOT}/.venv/bin/activate && \
 # path inside the container, where $APP_ROOT is the torizon_app_root 
 # configuration defined in settings.json
 COPY ./src ${APP_ROOT}/src
+RUN chmod +x  ${APP_ROOT}/src/run_script.sh
 
 WORKDIR ${APP_ROOT}
 
 ENV APP_ROOT=${APP_ROOT}
 # Activate and run the code
-CMD . ${APP_ROOT}/.venv/bin/activate && python3 src/main.py --no-sandbox
-
+#CMD . ${APP_ROOT}/.venv/bin/activate && python3 src/test_serial.py --no-sandbox && PYTHONPATH=`pwd`/src gunicorn --bind 0.0.0.0:5000 src.wsgi:app
+#CMD . ${APP_ROOT}/.venv/bin/activate && PYTHONPATH=`pwd`/src gunicorn --bind 0.0.0.0:5000 src.wsgi:app && python3 src/test_serial.py --no-sandbox
+CMD . ${APP_ROOT}/.venv/bin/activate && ./src/run_script.sh
