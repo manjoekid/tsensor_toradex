@@ -1,0 +1,15 @@
+version: "3.9"
+services:
+  nginx:
+    container_name: nginx
+    ports:
+    - 80:80
+    image: nginx
+    depends_on:
+    - tsensor
+  tsensor:
+    devices:
+    - /dev/colibri-uarta:/dev/ttyS1
+    ports:
+    - 5000:5000
+    image: rafaelkcosta/tsensor:initial

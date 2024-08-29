@@ -173,7 +173,7 @@ $prodKeys = New-Object Collections.Generic.List[String]
 
 Write-Host -ForegroundColor DarkGreen "✅ docker-compose.yml loaded"
 
-
+Write-Host $composeServices 
 # get the keys that need to be removed
 Write-Host "Cleaning services ..."
 

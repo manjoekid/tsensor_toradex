@@ -18,5 +18,9 @@
   "docker.environment": {
     "DOCKER_HOST": "tcp://10.0.0.111:2375"
   },
-  "torizon_ssh_port": "22"
+  "torizon_ssh_port": "22",
+  "docker_login": "rafaelkcosta",
+  "docker_tag": "initial",
+  "docker_registry": "",
+  "docker_password": "secret",
 }
