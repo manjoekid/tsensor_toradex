@@ -36,6 +36,7 @@ RUN apt-get -q -y update && \
 	nginx:armhf \
 	bridge-utils:armhf \
 	git:armhf \
+	nano:armhf \
     # __torizon_packages_prod_end__
 # DO NOT REMOVE THIS LABEL: this is used for VS Code automation
     && apt-get clean && apt-get autoremove && \
