@@ -1,0 +1,1 @@
+SUBSYSTEM=="tty", ACTION=="add", KERNEL=="ttyACM0", RUN+="/usr/bin/sudo /usr/bin/restart_gpsd.sh"

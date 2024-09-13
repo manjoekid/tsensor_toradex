@@ -124,10 +124,10 @@ if not debug_mode:
 
 # Open a CSV file for writing temp
 current_datetime = time.strftime("%Y%m%d_%H%M%S")
-#csv_file_path_temp = f'./output/output_temp_{current_datetime}.csv'
-#csv_file_path_interface = f'./output/output_interface_{current_datetime}.csv'
-csv_file_path_temp = f'/home/torizon/app/src/output/output_temp_{current_datetime}.csv'
-csv_file_path_interface = f'/home/torizon/app/src/output/output_interface_{current_datetime}.csv'
+csv_file_path_temp = f'./output/output_temp_{current_datetime}.csv'
+csv_file_path_interface = f'./output/output_interface_{current_datetime}.csv'
+#csv_file_path_temp = f'/home/torizon/app/src/output/output_temp_{current_datetime}.csv'
+#csv_file_path_interface = f'/home/torizon/app/src/output/output_interface_{current_datetime}.csv'
 csv_header_temp = ['Timestamp', 'Sensor 1', 'Sensor 2', 'Sensor 3', 'Sensor 4'
                            , 'Sensor 5', 'Sensor 6', 'Sensor 7', 'Sensor 8'
                            , 'Sensor 9', 'Sensor 10', 'Sensor 11', 'Sensor 12'

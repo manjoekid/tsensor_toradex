@@ -7,7 +7,9 @@
         "nginx",
         "bridge-utils",
         "git",
-        "nano"
+        "nano",
+        "htop",
+        "procps"
     ],
     "devDeps": [
         "build-essential",
@@ -17,6 +19,8 @@
         "nginx",
         "bridge-utils",
         "git",
-        "nano"
+        "nano",
+        "htop",
+        "procps"
     ]
 }

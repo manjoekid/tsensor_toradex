@@ -45,4 +45,4 @@ PARALLEL_MAKE ?= "-j ${@oe.utils.cpu_count()}"
 include conf/machine/include/${MACHINE}.inc
 
 
-IMAGE_INSTALL:append = " chrony chronyc nano gpsd python3"
+IMAGE_INSTALL:append = " chrony chronyc nano gpsd "
