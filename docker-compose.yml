@@ -22,7 +22,7 @@ services:
       - 5000:5000    
     devices:
       - "/dev/colibri-uarta:/dev/ttyS1"
-      - "/dev/rs485:/dev/rs485:rw,optional"
+      - "/dev/rs485:/dev/rs485:rw,optional"      
 
   nginx:
     build:

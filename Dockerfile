@@ -37,6 +37,8 @@ RUN apt-get -q -y update && \
 	bridge-utils:armhf \
 	git:armhf \
 	nano:armhf \
+	htop:armhf \
+	procps:armhf \
     # __torizon_packages_prod_end__
 # DO NOT REMOVE THIS LABEL: this is used for VS Code automation
     && apt-get clean && apt-get autoremove && \

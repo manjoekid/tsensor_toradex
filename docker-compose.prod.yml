@@ -1,16 +1,16 @@
-version: "3.9"
 services:
   nginx:
+    image: rafaelkcosta/nginx_tsensor:latest
     depends_on:
     - tsensor
     container_name: nginx_tsensor
     ports:
     - 80:80
-    image: rafaelkcosta/nginx_tsensor:latest
   tsensor:
-    ports:
-    - 5000:5000
+    image: rafaelkcosta/tsensor:latest
     devices:
     - /dev/colibri-uarta:/dev/ttyS1
     - /dev/rs485:/dev/rs485:rw,optional
-    image: rafaelkcosta/tsensor:latest
+    ports:
+    - 5000:5000
+version: "3.9"

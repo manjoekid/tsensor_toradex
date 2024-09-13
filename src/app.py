@@ -165,16 +165,16 @@ def search_files():
     start = request.json.get('startTime')
     stop = request.json.get('stopTime')
     realLog = request.json.get('realLog')
-    directory_path = './output/'  # Update with the path to your directory
+    directory_path = f'/home/torizon/app/src/output/'  # Update with the path to your directory
     files = os.listdir(directory_path)
 
-    output_file = './output/download.csv'
+    output_file = f'/home/torizon/app/src/output/download.csv'
     filtered_files = [os.path.join(directory_path, file) for file in files if meets_criteria(file,start,stop,realLog)]
     filtered_files = sorted(filtered_files)
     append_csv_files(filtered_files,output_file)
 
 
-    output_file = './output/logs.csv'
+    output_file = f'/home/torizon/app/src/output/logs.csv'
     filtered_files = [os.path.join(directory_path, file) for file in files if meets_criteria_log(file,start,stop)]
     filtered_files = sorted(filtered_files)
     append_csv_files(filtered_files,output_file)
@@ -254,7 +254,7 @@ def append_csv_files(input_files, output_file):
 
 @app.route('/downloadFile/<filename>')
 def download_file(filename):
-    directory_path = './output/'  # Update with the path to your directory
+    directory_path = f'/home/torizon/app/src/output/'  # Update with the path to your directory
     file_path = os.path.join(directory_path, filename)
     return send_file(file_path, as_attachment=True)
 
