@@ -12,7 +12,11 @@ services:
     devices:
       - "/dev/colibri-uarta:/dev/ttyS1"
       - "/dev/rs485:/dev/rs485:rw,optional"
-    
+    volumes:
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+      - /var/log/tsensor_output:/home/torizon/app/src/output
+
   tsensor:
     build:
       context: .
@@ -22,7 +26,11 @@ services:
       - 5000:5000    
     devices:
       - "/dev/colibri-uarta:/dev/ttyS1"
-      - "/dev/rs485:/dev/rs485:rw,optional"      
+      - "/dev/rs485:/dev/rs485:rw,optional"
+    volumes:
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+      - /var/log/tsensor_output:/home/torizon/app/src/output
 
   nginx:
     build:
@@ -32,5 +40,8 @@ services:
     container_name: nginx_tsensor
     ports:
       - "80:80"
+    volumes:
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
     depends_on:
       - tsensor

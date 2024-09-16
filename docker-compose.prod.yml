@@ -1,16 +1,23 @@
+version: "3.9"
 services:
-  nginx:
-    image: rafaelkcosta/nginx_tsensor:latest
-    depends_on:
-    - tsensor
-    container_name: nginx_tsensor
-    ports:
-    - 80:80
   tsensor:
     image: rafaelkcosta/tsensor:latest
+    volumes:
+    - /etc/timezone:/etc/timezone:ro
+    - /etc/localtime:/etc/localtime:ro
+    - /var/log/tsensor_output:/home/torizon/app/src/output
+    ports:
+    - 5000:5000
     devices:
     - /dev/colibri-uarta:/dev/ttyS1
     - /dev/rs485:/dev/rs485:rw,optional
+  nginx:
     ports:
-    - 5000:5000
-version: "3.9"
+    - 80:80
+    container_name: nginx_tsensor
+    volumes:
+    - /etc/timezone:/etc/timezone:ro
+    - /etc/localtime:/etc/localtime:ro
+    depends_on:
+    - tsensor
+    image: rafaelkcosta/nginx_tsensor:latest
