@@ -5,6 +5,7 @@ import os
 import datetime
 import csv
 import time
+from multiprocessing import Lock
 
 app = Flask(__name__,
             static_folder='static',
@@ -18,10 +19,22 @@ users = {
     'user@tsensor.com': generate_password_hash('1234'),
 }
 
+# Create a lock object
+lock = Lock()
+
 tsensor_pipe = SharedMemoryDict(name='temperatures', size=4096)
 
 
+def safe_write_to_shm(key, value):
+    with lock:
+        tsensor_pipe[key] = value
 
+# Function to safely read from the shared memory
+def safe_read_from_shm(key):
+    with lock:
+        value = tsensor_pipe.get(key, None)
+        return value
+    
 @app.before_request
 def make_session_permanent():
     session.permanent = True
@@ -42,8 +55,8 @@ def check_session_timeout():
 def home():
     if 'user' in session:
         user = session.get('user')
-        tsensor_pipe["connection"] = dict(session)
-        tsensor_pipe["user"] = user
+        safe_write_to_shm("connection", dict(session))
+        safe_write_to_shm("user", user)
         return render_template('temperatura.html', user=session['user'])
     else:
         return render_template('login.html')
@@ -73,23 +86,23 @@ def dados_temperatura():
     session['last_active'] = time.time()
     # Dados de exemplo - 32 temperaturas
     #temperatures = test_serial.read_real_time_temperature()
-    temperature =  [str(num) for num in tsensor_pipe["temperature"]]
-    temperature_max = [str(num) for num in tsensor_pipe["temperature_max"]]
-    temperature_min = [str(num) for num in tsensor_pipe["temperature_min"]]
-    modo_atual = tsensor_pipe["modo"]
-    estado_atual = tsensor_pipe["estado"]
-    estado_ga = tsensor_pipe["estado_ga"]
-    temperature_media = str(tsensor_pipe["media"])
-    upper_limit = [str(num) for num in tsensor_pipe["limite_superior"]]
-    lower_limit = [str(num) for num in tsensor_pipe["limite_inferior"]]
-    upper_limit_start = [str(num) for num in tsensor_pipe["limite_superior_partida"]]
-    lower_limit_start = [str(num) for num in tsensor_pipe["limite_inferior_partida"]]    
-    calibracao = [str(num) for num in tsensor_pipe["calibracao"]]
-    time_limit = str(tsensor_pipe["limite_consecutivo"])
-    general_limit = tsensor_pipe["general_limit"]
-    enabled_sensor = tsensor_pipe["enabled_sensor"]
-    pre_alarme_timeout = tsensor_pipe['pre_alarme_timeout']
-    repeat_lost = tsensor_pipe['repeat_lost']
+    temperature =  [str(num) for num in safe_read_from_shm("temperature")]
+    temperature_max = [str(num) for num in safe_read_from_shm("temperature_max")]
+    temperature_min = [str(num) for num in safe_read_from_shm("temperature_min")]
+    modo_atual = safe_read_from_shm("modo")
+    estado_atual = safe_read_from_shm("estado")
+    estado_ga = safe_read_from_shm("estado_ga")
+    temperature_media = str(safe_read_from_shm("media"))
+    upper_limit = [str(num) for num in safe_read_from_shm("limite_superior")]
+    lower_limit = [str(num) for num in safe_read_from_shm("limite_inferior")]
+    upper_limit_start = [str(num) for num in safe_read_from_shm("limite_superior_partida")]
+    lower_limit_start = [str(num) for num in safe_read_from_shm("limite_inferior_partida")]    
+    calibracao = [str(num) for num in safe_read_from_shm("calibracao")]
+    time_limit = str(safe_read_from_shm("limite_consecutivo"))
+    general_limit = safe_read_from_shm("general_limit")
+    enabled_sensor = safe_read_from_shm("enabled_sensor")
+    pre_alarme_timeout = safe_read_from_shm('pre_alarme_timeout')
+    repeat_lost = safe_read_from_shm('repeat_lost')
     
     intermed = jsonify({'temperaturas':{'max': temperature_max,
                                         'real': temperature,
@@ -123,8 +136,8 @@ def alterar_modo():
     except:
         return jsonify({'error': 'Modo inválido'}), 400
     if novo_modo in ['ligado', 'desligado', 'auto', 'pre-alarme']:
-        tsensor_pipe["modo"] = novo_modo
-        tsensor_pipe["user"] = user
+        safe_write_to_shm("modo", novo_modo)
+        safe_write_to_shm("user", user)
         return jsonify({'message': f'Modo alterado para {novo_modo}'})
     else:
         return jsonify({'error': 'Modo inválido'}), 400
@@ -145,17 +158,17 @@ def alterar_config():
     user = session.get('user')
 
 
-    tsensor_pipe["limite_superior"] = upper_temp
-    tsensor_pipe["limite_inferior"] = lower_temp
-    tsensor_pipe["limite_superior_partida"] = upper_temp_start
-    tsensor_pipe["limite_inferior_partida"] = lower_temp_start 
-    tsensor_pipe["limite_consecutivo"] = time_limit
-    tsensor_pipe["general_limit"] = general_limit
-    tsensor_pipe["enabled_sensor"] = enabled_sensor
-    tsensor_pipe["calibracao"] = calibracao
-    tsensor_pipe["pre_alarme_timeout"] = pre_alarme_timeout
-    tsensor_pipe["repeat_lost"] = repeat_lost
-    tsensor_pipe["user"] = user
+    safe_write_to_shm("limite_superior", upper_temp)
+    safe_write_to_shm("limite_inferior", lower_temp)
+    safe_write_to_shm("limite_superior_partida", upper_temp_start)
+    safe_write_to_shm("limite_inferior_partida", lower_temp_start)
+    safe_write_to_shm("limite_consecutivo", time_limit)
+    safe_write_to_shm("general_limit", general_limit)
+    safe_write_to_shm("enabled_sensor", enabled_sensor)
+    safe_write_to_shm("calibracao", calibracao)
+    safe_write_to_shm("pre_alarme_timeout", pre_alarme_timeout)
+    safe_write_to_shm("repeat_lost", repeat_lost)
+    safe_write_to_shm("user", user)
     
 
     return jsonify({'message': 'Config alterada'})

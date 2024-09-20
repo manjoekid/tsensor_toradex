@@ -7,6 +7,8 @@ import numpy as np
 from shared_memory_dict import SharedMemoryDict
 from pyModbusTCP.client import ModbusClient
 from dotenv import load_dotenv, set_key, find_dotenv
+from multiprocessing import Lock
+
 
 try:
     # Load variables from the .env file
@@ -149,28 +151,45 @@ temp_max_array = np.zeros(32, dtype='float32')
 ### inicializa array com os valores máximos encontrados
 temp_min_array = np.zeros(32, dtype='float32')
 
+
+# Create a lock object
+lock = Lock()
+
 tsensor_pipe = SharedMemoryDict(name='temperatures', size=4096)
 
-tsensor_pipe["estado"] = alarm_on
-tsensor_pipe["estado_ga"] = False
-tsensor_pipe["limite_superior"] = upper_limit
-tsensor_pipe["limite_inferior"] = lower_limit
-tsensor_pipe["limite_superior_partida"] = upper_limit_start
-tsensor_pipe["limite_inferior_partida"] = lower_limit_start
-tsensor_pipe["calibracao"] = calibracao
-tsensor_pipe["general_limit"] = general_limit
-tsensor_pipe["limite_consecutivo"] = consecutive_limit
-tsensor_pipe["modo"] = modo
-tsensor_pipe["media"] = average_temp
-tsensor_pipe["temperature"] = temp_max_array.tolist()
-tsensor_pipe["temperature_max"] = temp_max_array.tolist()
-tsensor_pipe["temperature_min"] = temp_max_array.tolist()
-tsensor_pipe["enabled_sensor"] = enabled_sensor
-tsensor_pipe["pre_alarme_timeout"] = pre_alarme_timeout
-tsensor_pipe["repeat_lost"] = repeat_lost
-tsensor_pipe["user"] = "system"
-tsensor_pipe["connection"] = connection
 
+# Protect access to shared memory with the lock
+with lock:
+    tsensor_pipe["estado"] = alarm_on
+    tsensor_pipe["estado_ga"] = False
+    tsensor_pipe["limite_superior"] = upper_limit
+    tsensor_pipe["limite_inferior"] = lower_limit
+    tsensor_pipe["limite_superior_partida"] = upper_limit_start
+    tsensor_pipe["limite_inferior_partida"] = lower_limit_start
+    tsensor_pipe["calibracao"] = calibracao
+    tsensor_pipe["general_limit"] = general_limit
+    tsensor_pipe["limite_consecutivo"] = consecutive_limit
+    tsensor_pipe["modo"] = modo
+    tsensor_pipe["media"] = average_temp
+    tsensor_pipe["temperature"] = temp_max_array.tolist()
+    tsensor_pipe["temperature_max"] = temp_max_array.tolist()
+    tsensor_pipe["temperature_min"] = temp_max_array.tolist()
+    tsensor_pipe["enabled_sensor"] = enabled_sensor
+    tsensor_pipe["pre_alarme_timeout"] = pre_alarme_timeout
+    tsensor_pipe["repeat_lost"] = repeat_lost
+    tsensor_pipe["user"] = "system"
+    tsensor_pipe["connection"] = connection
+
+
+def safe_write_to_shm(key, value):
+    with lock:
+        tsensor_pipe[key] = value
+
+# Function to safely read from the shared memory
+def safe_read_from_shm(key):
+    with lock:
+        value = tsensor_pipe.get(key, None)
+        return value
 
 def save_alarm_to_log(sensor,temp_limite,limite,temperatura,acionamento,contagem):
     global csv_file_path_log
@@ -219,7 +238,7 @@ def turn_off_alarm():
         else:
             data_received_mod = tcp_modbus.write_single_register(500, 0)    #Desliga alarme
         alarm_on = False
-        tsensor_pipe["estado"] = False
+        safe_write_to_shm("estado", False)
         
         set_key(find_dotenv(), 'alarm_on', 'False')   #salva estado do alarme no '.env'
         print_msg(f"[{timestamp}] Turning off Alarm - Data written: (500, 0)",1)
@@ -233,7 +252,7 @@ def turn_on_alarm():
     if check_Alarm() :
         return
 
-    if ((tsensor_pipe["modo"] == "auto") or (tsensor_pipe["modo"] == "partida")) :
+    if ((safe_read_from_shm("modo") == "auto") or (safe_read_from_shm("modo") == "partida")) :
         if check_GA():
             timestamp = time.strftime('%Y-%m-%d %H:%M:%S') 
 
@@ -256,9 +275,9 @@ def turn_on_alarm():
             print_msg("Erro - Alarme não foi acionado - GA Desligado",1)
             save_change_to_log("Erro","Alarme não foi acionado - GA Desligado")
             #alarm_on = False
-            #tsensor_pipe["estado"] = False
+            #safe_write_to_shm("estado", False)
             return
-    elif (tsensor_pipe["modo"] == 'ligado' ) :
+    elif (safe_read_from_shm("modo") == 'ligado' ) :
         timestamp = time.strftime('%Y-%m-%d %H:%M:%S') 
 
         # Writing data to the TCP port
@@ -296,12 +315,12 @@ def check_GA():
             if ((modo == "auto") and (pre_alarme_init)) :
                 print_msg(f"[{timestamp}] Entrando em modo partida",0)
                 modo = "partida"
-                tsensor_pipe["modo"] = "partida"
-        tsensor_pipe["estado_ga"] = True
+                safe_write_to_shm("modo", "partida")
+        safe_write_to_shm("estado_ga", True)
         return True
     else:
         print_msg(f"[{timestamp}] GA is OFF",2)
-        tsensor_pipe["estado_ga"] = False
+        safe_write_to_shm("estado_ga", False)
         GA_state = False
         return False        
 
@@ -314,7 +333,7 @@ def return_alarm_to_state(alarm_saved_state):
             data_received_mod = tcp_modbus.write_single_register(500, alarm_state)    #Liga/desliga alarme
         
         alarm_on = True if alarm_state == 1 else False
-        tsensor_pipe["estado"] = alarm_on
+        safe_write_to_shm("estado", alarm_on)
         print_msg(f"Inicializando o alarme conforme dados salvos '.env'. Modbus retornou: {data_received_mod}",0)
 
 
@@ -336,7 +355,7 @@ def check_Alarm():
     if (alarm_on!=alarm_state):
         print_msg(f"[{timestamp}] Alarm changed state to {alarm_state}",1)
         alarm_on = alarm_state
-        tsensor_pipe["estado"] = alarm_on
+        safe_write_to_shm("estado", alarm_on)
         set_key(find_dotenv(), 'alarm_on', 'True' if alarm_on else 'False')   #salva estado do alarme no '.env'
 
     return alarm_state
@@ -344,61 +363,61 @@ def check_Alarm():
 def check_update_from_interface():
     global modo,upper_limit,lower_limit,consecutive_limit,general_limit,enabled_sensor,calibracao,pre_alarme_timeout, repeat_lost,connection, upper_limit_start, lower_limit_start
 
-    user = tsensor_pipe["user"]
+    user = safe_read_from_shm("user")
     if user is None:
         user = 'error getting user'
-    if tsensor_pipe["modo"] != modo :
-        modo = tsensor_pipe["modo"]
+    if safe_read_from_shm("modo") != modo :
+        modo = safe_read_from_shm("modo")
         set_key(find_dotenv(), 'modo', modo)   #salva estado do alarme no '.env'
         save_change_to_log("Info","Modo alterado para "+modo_string(modo)+" por usuário " + user)
         if modo == 'ligado':
             turn_on_alarm()
         else :
             turn_off_alarm()
-    if tsensor_pipe["limite_superior"] != upper_limit :
-        upper_limit = tsensor_pipe["limite_superior"]
+    if safe_read_from_shm("limite_superior") != upper_limit :
+        upper_limit = safe_read_from_shm("limite_superior")
         set_key(find_dotenv(), 'upper_limit', str(upper_limit))   #salva estado do alarme no '.env'
         save_change_to_log("Info","Limite superior alterado para "+str(upper_limit)+" por usuário " + user)
-    if tsensor_pipe["limite_inferior"] != lower_limit :
-        lower_limit = tsensor_pipe["limite_inferior"]
+    if safe_read_from_shm("limite_inferior") != lower_limit :
+        lower_limit = safe_read_from_shm("limite_inferior")
         set_key(find_dotenv(), 'lower_limit', str(lower_limit))   #salva estado do alarme no '.env'
         save_change_to_log("Info","Limite inferior alterado para "+str(lower_limit)+" por usuário "+ user)
-    if tsensor_pipe["limite_consecutivo"] != consecutive_limit :
-        consecutive_limit = tsensor_pipe["limite_consecutivo"]
+    if safe_read_from_shm("limite_consecutivo") != consecutive_limit :
+        consecutive_limit = safe_read_from_shm("limite_consecutivo")
         set_key(find_dotenv(), 'consecutive_limit', str(consecutive_limit))   
         save_change_to_log("Info","Quantidade de amostras antes de alarmar alterado para  "+str(consecutive_limit)+" por usuário "+ user)
-    if tsensor_pipe["general_limit"] != general_limit :
-        general_limit = tsensor_pipe["general_limit"]
+    if safe_read_from_shm("general_limit") != general_limit :
+        general_limit = safe_read_from_shm("general_limit")
         set_key(find_dotenv(), 'general_limit', str(general_limit))  
         save_change_to_log("Info","Modo de avaliação de limites alterado para "+ ("Geral" if general_limit else "Individual")+" por usuário "+ user)
-    if tsensor_pipe["enabled_sensor"] != enabled_sensor :
-        enabled_sensor = tsensor_pipe["enabled_sensor"]
+    if safe_read_from_shm("enabled_sensor") != enabled_sensor :
+        enabled_sensor = safe_read_from_shm("enabled_sensor")
         set_key(find_dotenv(), 'enabled_sensor', str(enabled_sensor))  
         save_change_to_log("Info","Lista de sensores habilitados alterada para "+str(enabled_sensor)+" por usuário "+ user)
-    if tsensor_pipe["calibracao"] != calibracao :
-        calibracao = tsensor_pipe["calibracao"]
+    if safe_read_from_shm("calibracao") != calibracao :
+        calibracao = safe_read_from_shm("calibracao")
         set_key(find_dotenv(), 'calibracao', str(calibracao))  
         save_change_to_log("Info","Calibração dos sensores alterada para "+str(calibracao)+" por usuário "+ user)
-    if tsensor_pipe["pre_alarme_timeout"] != pre_alarme_timeout :
-        pre_alarme_timeout = tsensor_pipe["pre_alarme_timeout"]
+    if safe_read_from_shm("pre_alarme_timeout") != pre_alarme_timeout :
+        pre_alarme_timeout = safe_read_from_shm("pre_alarme_timeout")
         set_key(find_dotenv(), 'pre_alarme_timeout', str(pre_alarme_timeout))  
         save_change_to_log("Info","Timeout de pré-alarme alterado para "+str(pre_alarme_timeout)+" por usuário "+ user)
-    if tsensor_pipe["repeat_lost"] != repeat_lost :
-        repeat_lost = tsensor_pipe["repeat_lost"]
+    if safe_read_from_shm("repeat_lost") != repeat_lost :
+        repeat_lost = safe_read_from_shm("repeat_lost")
         set_key(find_dotenv(), 'repeat_lost', str(repeat_lost))  
         save_change_to_log("Info","Filtro repete anterior alterado para "+("Ligado" if repeat_lost else "Desligado")+" por usuário "+ user)
-    if tsensor_pipe["connection"] != connection :
-        connection = tsensor_pipe["connection"]
+    if safe_read_from_shm("connection") != connection :
+        connection = safe_read_from_shm("connection")
         save_change_to_log("Info","Nova conexão na interface por usuário " + user + " - connection: " + str(connection))
         connection = ""
-        tsensor_pipe["connection"] = connection
+        safe_write_to_shm("connection", connection)
         print_msg(f"[{timestamp}] Nova conexão do usuário {user}",1)
-    if tsensor_pipe["limite_superior_partida"] != upper_limit_start :
-        upper_limit_start = tsensor_pipe["limite_superior_partida"]
+    if safe_read_from_shm("limite_superior_partida") != upper_limit_start :
+        upper_limit_start = safe_read_from_shm("limite_superior_partida")
         set_key(find_dotenv(), 'upper_limit_start', str(upper_limit_start))   #salva estado do alarme no '.env'
         save_change_to_log("Info","Limite superior de partida alterado para "+str(upper_limit_start)+" por usuário "+ user)         
-    if tsensor_pipe["limite_inferior_partida"] != lower_limit_start :
-        lower_limit_start = tsensor_pipe["limite_inferior_partida"]
+    if safe_read_from_shm("limite_inferior_partida") != lower_limit_start :
+        lower_limit_start = safe_read_from_shm("limite_inferior_partida")
         set_key(find_dotenv(), 'lower_limit_start', str(lower_limit_start))   #salva estado do alarme no '.env'
         save_change_to_log("Info","Limite inferior de partida alterado para "+str(lower_limit_start)+" por usuário "+ user) 
     
@@ -716,10 +735,10 @@ try:
         if modo == "partida":
             if pre_alarme_timeout > 0:
                 pre_alarme_timeout -= 1
-                tsensor_pipe["pre_alarme_timeout"] = pre_alarme_timeout
+                safe_write_to_shm("pre_alarme_timeout", pre_alarme_timeout)
             else:
                 modo = "auto"
-                tsensor_pipe["modo"] = modo
+                safe_write_to_shm("modo", modo)
 
         check_update_from_interface()
         
@@ -766,10 +785,10 @@ try:
                     temp_min_array[i] = min(temp_min_array[i],temp_shm[i])
 
         
-        tsensor_pipe["temperature"] = temp_shm.tolist()
-        tsensor_pipe["temperature_max"] = temp_max_array.tolist()
-        tsensor_pipe["temperature_min"] = temp_min_array.tolist()
-        tsensor_pipe["estado"] = alarm_on
+        safe_write_to_shm("temperature", temp_shm.tolist())
+        safe_write_to_shm("temperature_max", temp_max_array.tolist())
+        safe_write_to_shm("temperature_min", temp_min_array.tolist())
+        safe_write_to_shm("estado", alarm_on)
 
         last_temp_array = temp_shm.copy()
 
@@ -798,7 +817,7 @@ try:
             average_temp = np.sum(average_array)/read_count
         else :
             average_temp = 0.0
-        tsensor_pipe["media"] = average_temp
+        safe_write_to_shm("media", average_temp)
 
 
         ####################################################################
